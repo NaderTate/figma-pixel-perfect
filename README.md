@@ -4,38 +4,90 @@ Turn any Figma design into pixel-perfect code with Claude Code. Not "pretty clos
 
 Most AI Figma-to-code attempts fail the same way: the model looks at a screenshot and approximates. This kit makes that impossible. The agent pulls the design as **data** (exact coordinates, sizes, colors, weights), builds from the numbers, then proves the result with scripts that fail loudly until the render matches.
 
-## What's inside
+## Quick start
 
-| File | What it does |
-|---|---|
-| `FIGMA_PIXEL_PERFECT.md` | The rules. Works standalone in any repo with any agent; the methodology in one file. |
-| `.claude/commands/figma.md` | `/figma <node-url>`: the whole workflow as one Claude Code command. |
-| `.claude/agents/figma-section-builder.md` | Subagent that builds one section per agent, so full pages build in parallel. |
-| `scripts/figma-spec-check.mjs` | **The design as a test suite.** Asserts real DOM boxes and computed styles against the Figma geometry; failures name the element, property, and delta. |
-| `scripts/figma-shot.mjs` | Screenshots your dev server at the exact Figma frame width (fonts awaited, 1x scale). |
-| `scripts/figma-diff.mjs` | Pixel-diffs the render against the Figma reference; prints mismatch % + a worst-region grid; exits non-zero when off, so the agent loops until it isn't. |
-| `scripts/responsive-audit.mjs` | Checks every width from 320 to 3840: no horizontal scroll, screenshots each for visual review. |
+1. **Copy the kit into your project.** Drop `FIGMA_PIXEL_PERFECT.md`, the `.claude/` folder, and the `scripts/` folder into your repo root.
+2. **Install the verify tools:**
+   ```
+   npm i -D playwright pixelmatch pngjs
+   npx playwright install chromium
+   ```
+3. **Add to your `.gitignore`:** `.figma/` and `.audit/` (screenshot + spec artifacts).
+4. **Connect the Figma MCP server to Claude Code.** Open the Figma desktop app, enable the Dev Mode MCP server (or use Figma's remote MCP server), and add it to Claude Code. Figma's setup guide: https://help.figma.com/hc/en-us/articles/32132100833559
+   - If the design is a Community file, duplicate it into your own drafts first; the MCP only reads files you own.
+5. **Fill in the "Your project" block** at the top of `FIGMA_PIXEL_PERFECT.md`: your framework, styling, component library, dev command, and checks. This is how the agent knows your stack.
+6. **Get the design link.** In Figma, right-click the frame you want built and choose **Copy link to selection**. The link must contain `?node-id=`.
+7. **Run it.** In Claude Code:
+   ```
+   /figma <that link>
+   ```
 
-## Install (into your project)
+The agent reads the design as data, builds in your stack, writes a spec test suite from the geometry, and iterates until the spec passes and the pixel diff is sub-perceptual. Full pages fan out to one subagent per section, in parallel.
 
-1. Copy `FIGMA_PIXEL_PERFECT.md`, `.claude/`, and `scripts/` into your repo root.
-2. `npm i -D playwright pixelmatch pngjs && npx playwright install chromium`
-3. Connect the Figma MCP server to Claude Code (Figma desktop app: Dev Mode MCP server, or Figma's remote MCP server). See Figma's guide: https://help.figma.com/hc/en-us/articles/32132100833559
-4. Add `.figma/` and `.audit/` to your `.gitignore`.
+## What each file does
 
-Note: if the design is a Community file, duplicate it into your own drafts first; the MCP only reads files you own.
+### `FIGMA_PIXEL_PERFECT.md` - the rules
 
-## Use
+The whole methodology in one file: read the design as data (never eyeball), translate values literally, derive layout from coordinate math, reuse components and real assets, dodge the component-library traps, and verify with numbers. It works **standalone** in any repo with any capable agent: if you don't use the rest of the kit, copy just this file and use the kickoff prompt inside it.
 
-Fill in the **Your project** block in `FIGMA_PIXEL_PERFECT.md` (your stack, dev command, checks). Then, in Figma, right-click the frame and **Copy link to selection** (the link must contain `?node-id=`), and in Claude Code:
+### `.claude/commands/figma.md` - the `/figma` command
+
+The methodology as an executable Claude Code slash command. Handles the once-per-repo setup (design tokens synced into your theme, deps installed), then per design: read order, section triage, build rules, the spec suite, and the full verification loop. Usage:
 
 ```
-/figma <that link>
+/figma <figma-node-url>
 ```
 
-That's it. The agent reads the design as data, builds in your stack, writes a spec test suite from the geometry, and iterates until the spec passes and the pixel diff is sub-perceptual. Full pages fan out to one subagent per section, in parallel.
+### `.claude/agents/figma-section-builder.md` - the parallel section builder
 
-No Claude Code? Use `FIGMA_PIXEL_PERFECT.md` alone with the kickoff prompt inside it; it carries the whole methodology.
+A Claude Code subagent that builds exactly ONE section into ONE component and verifies it itself. `/figma` dispatches one per section when the frame is a full page, so the page costs about as much wall-clock as its slowest section. You never invoke this directly.
+
+### `scripts/figma-spec-check.mjs` - the design as a test suite
+
+The strongest verifier in the kit. The agent extracts the Figma geometry and key styles into a `spec.json`, and this script asserts the **real rendered DOM** against it in a real browser (boxes via `getBoundingClientRect`, styles via `getComputedStyle`, fonts awaited). Every failure names the exact element, property, expected, actual, and delta:
+
+```
+node scripts/figma-spec-check.mjs .figma/hero/spec.json
+
+[hero]
+  FAIL title box.x: expected 120, got 132.0 (delta +12.0)
+  FAIL title font-weight: expected 600, got 500
+  ok   cta
+
+18 checks, 2 failed
+```
+
+Exits non-zero on any failure, so the agent loops until `0 failed`. The spec format is documented at the top of the script. Accepts several spec files at once for multi-section pages, plus `--url` / `--width` overrides.
+
+### `scripts/figma-shot.mjs` - exact-width screenshots
+
+Screenshots your served page at the **exact Figma frame width**, at 1x scale, after fonts load, optionally cropped to one element, so the render and the Figma reference can be compared 1:1:
+
+```
+node scripts/figma-shot.mjs http://localhost:3000 1440 .figma/hero/render.png "[data-figma='hero']"
+```
+
+### `scripts/figma-diff.mjs` - the pixel diff
+
+Objective pixel comparison between the Figma reference PNG and your render. Prints the mismatch %, a 4x4 grid naming the worst regions, and writes a `diff.png` with every differing pixel highlighted:
+
+```
+node scripts/figma-diff.mjs .figma/hero/reference.png .figma/hero/render.png .figma/hero
+
+diff: 1.84%  (9812/532800 px)  ->  .figma/hero/diff.png
+worst cells (col,row = pct):
+  (2,1) = 6.3%
+```
+
+Exits non-zero above 5% so an agent (or CI) can gate on it. Under ~2% is pixel-perfect territory; anti-aliasing accounts for most of the remainder.
+
+### `scripts/responsive-audit.mjs` - every other width
+
+Pixel-perfect applies at each frame's own width; everywhere else the bar is "professional and robust". This script loads your page at 13 widths (320 to 3840), fails on any horizontal scroll, names the worst overflowing element, and screenshots every width into `.audit/` so the agent can visually review reflow:
+
+```
+node scripts/responsive-audit.mjs http://localhost:3000
+```
 
 ## How the loop works
 
@@ -53,6 +105,10 @@ Figma MCP (data, not pictures)          Your repo
 ```
 
 Two verifiers on purpose: the spec suite catches what the eye misses (a 4px drift, a 500-vs-600 font weight) and names the exact element; the pixel diff catches what numbers miss (font rendering, assets, masks). Green spec + sub-perceptual diff is what "pixel-perfect" means here.
+
+## Not using Claude Code?
+
+`FIGMA_PIXEL_PERFECT.md` is self-contained: copy it into your repo, fill in the project block, and use the kickoff prompt inside it with any agent that has the Figma MCP. The scripts are plain Node and work with any agent (or by hand) too.
 
 ## License
 
