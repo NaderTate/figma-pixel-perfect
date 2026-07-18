@@ -1,0 +1,19 @@
+{
+  "name": "figma-pixel-perfect-kit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn Figma designs into pixel-perfect code with an AI coding agent: rules, an executable /figma workflow, and objective verification scripts (spec-as-tests + pixel diff).",
+  "scripts": {
+    "shot": "node scripts/figma-shot.mjs",
+    "diff": "node scripts/figma-diff.mjs",
+    "spec": "node scripts/figma-spec-check.mjs",
+    "responsive": "node scripts/responsive-audit.mjs",
+    "setup:browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "pixelmatch": "^7.1.0",
+    "playwright": "^1.49.0",
+    "pngjs": "^7.0.0"
+  }
+}
