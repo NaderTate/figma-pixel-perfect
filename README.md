@@ -4,25 +4,40 @@ Turn any Figma design into pixel-perfect code with Claude Code. Not "pretty clos
 
 Most AI Figma-to-code attempts fail the same way: the model looks at a screenshot and approximates. This kit makes that impossible. The agent pulls the design as **data** (exact coordinates, sizes, colors, weights), builds from the numbers, then proves the result with scripts that fail loudly until the render matches.
 
-## Quick start
+## Install (paste one prompt)
 
-1. **Copy the kit into your project.** Drop `FIGMA_PIXEL_PERFECT.md`, the `.claude/` folder, and the `scripts/` folder into your repo root.
-2. **Install the verify tools:**
-   ```
-   npm i -D playwright pixelmatch pngjs
-   npx playwright install chromium
-   ```
-3. **Add to your `.gitignore`:** `.figma/` and `.audit/` (screenshot + spec artifacts).
-4. **Connect the Figma MCP server to Claude Code.** Open the Figma desktop app, enable the Dev Mode MCP server (or use Figma's remote MCP server), and add it to Claude Code. Figma's setup guide: https://help.figma.com/hc/en-us/articles/32132100833559
-   - If the design is a Community file, duplicate it into your own drafts first; the MCP only reads files you own.
-5. **Fill in the "Your project" block** at the top of `FIGMA_PIXEL_PERFECT.md`: your framework, styling, component library, dev command, and checks. This is how the agent knows your stack.
-6. **Get the design link.** In Figma, right-click the frame you want built and choose **Copy link to selection**. The link must contain `?node-id=`.
-7. **Run it.** In Claude Code:
+Open Claude Code **in your project** and paste this:
+
+```
+Install the Figma Pixel-Perfect Kit into this repo:
+clone https://github.com/NaderTate/figma-pixel-perfect to a temp folder,
+read its INSTALL.md, and follow it exactly.
+```
+
+Claude copies the kit in, installs the verify tools, updates your .gitignore, and auto-fills the kit's project config from your repo. When it finishes, **restart the Claude Code session** (that's when it picks up new slash commands).
+
+One thing Claude can't do for you: connect the **Figma MCP server** to Claude Code (Figma desktop app, Dev Mode MCP server, or Figma's remote server). Setup guide: https://help.figma.com/hc/en-us/articles/32132100833559. If the design is a Community file, duplicate it into your own drafts first; the MCP only reads files you own.
+
+## Use
+
+1. In Figma, right-click the frame you want built and choose **Copy link to selection**. The link must contain `?node-id=`.
+2. In Claude Code:
    ```
    /figma <that link>
    ```
 
 The agent reads the design as data, builds in your stack, writes a spec test suite from the geometry, and iterates until the spec passes and the pixel diff is sub-perceptual. Full pages fan out to one subagent per section, in parallel.
+
+<details>
+<summary><b>Manual install</b> (if you'd rather copy files yourself)</summary>
+
+1. Copy `FIGMA_PIXEL_PERFECT.md`, the `.claude/` folder, and the `scripts/` folder into your repo root (merge `.claude/` with an existing one, don't replace it).
+2. `npm i -D playwright pixelmatch pngjs && npx playwright install chromium`
+3. Add `.figma/` and `.audit/` to your `.gitignore`.
+4. Fill in the "Your project" block at the top of `FIGMA_PIXEL_PERFECT.md`: framework, styling, component library, dev command, checks.
+5. Restart the Claude Code session so `/figma` appears.
+
+</details>
 
 ## What each file does
 
