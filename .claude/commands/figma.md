@@ -23,7 +23,7 @@ Turn the Figma node at `$ARGUMENTS` into production code in THIS repo's stack, v
 ## 2. Triage - section or page?
 
 - **Full page** (node has several top-level section children): set up tokens + the page shell + globals FIRST (in this session, not in parallel), then dispatch **one `figma-section-builder` subagent per section, in parallel**. Each owns ONE component file and writes its own spec file. This is where speed scales: a page costs about the slowest section, not the sum.
-- **Cross-section decorations belong to the shell.** Scan the metadata for elements whose geometry spans more than one section: continuous lines/pipes whose x positions repeat across sections, background blobs bleeding past a section boundary, connector threads. Build these ONCE in the page shell (absolutely positioned over the full page, layered per the design's z-order, an SVG path layer works well for pipe/line networks), and list them in each section builder's dispatch prompt so no builder rebuilds its local slice. Split across builders they come out as broken segments with seams at every boundary.
+- **Cross-section decorations belong to the shell.** Scan the metadata for elements whose geometry spans more than one section: continuous lines/pipes whose x positions repeat across sections, background blobs bleeding past a section boundary, connector threads. Build these ONCE in the page shell (absolutely positioned over the full page, layered per the design's z-order, an SVG path layer works well for pipe/line networks), and list them in each section builder's dispatch prompt so no builder rebuilds its local slice. Split across builders they come out as broken segments with seams at every boundary. The same ownership rule applies to FOREGROUND elements straddling a boundary (a mockup half on one band, half on the next): assign each to exactly one owner (the shell, or one section rendering it with visible overflow) and tell the neighboring builder it is owned elsewhere.
 - **Single section/component:** build it directly here.
 
 ## 2b. Speed rules (parallelize everything that can be)
@@ -40,7 +40,7 @@ Wall-clock time matters as much as fidelity. The design of the fan-out:
 
 1. **Geometry from `get_metadata`, not `get_design_context`.** The Figma code wraps layers in `display:contents`, which collapses real offsets, so its positions are often wrong. Cross-check every position against metadata (its x/y are flat coords within the queried frame).
 2. **Exact values + real fonts.** `text-[72px]`, token hexes, the actual font actually loaded. A wrong font invalidates every other measurement.
-3. **ASSET-EXPORT RULE (the #1 time saver).** Any organic/multi-layer mask, clipped photo, gradient mesh, or decorative vector composite: export that node as ONE png/svg and place it at its metadata coords. Do NOT hand-rebuild CSS `mask-image` composites. Budget: at most ONE attempt at a DOM/SVG clip; if it is not matching, export the node and move on.
+3. **ASSET-EXPORT RULE (the #1 time saver).** Any organic/multi-layer mask, clipped photo, gradient mesh, photo under a color overlay/duotone blend, or decorative vector composite: export that node as ONE png/svg and place it at its metadata coords. Do NOT hand-rebuild CSS `mask-image` composites. Budget: at most ONE attempt at a DOM/SVG clip; if it is not matching, export the node and move on.
 4. **Reuse components.** Use the Code Connect map / the repo's library. Never rebuild a Button that already exists.
 5. **Tag as you build.** Put `data-figma="<slug>"` on each section root and on the key elements you will assert in the spec (headings, buttons, columns, fixed-width containers). Stable selectors make the spec suite trivial.
 
@@ -66,7 +66,8 @@ The spec catches what the eye misses (a 4px drift, a 500-vs-600 weight) and pins
 ## 6. Report
 
 - Spec suite: N checks, 0 failed (or list what remains and why).
-- Final diff % per section AND for the whole frame at the frame width.
+- Final diff % per section AND for the whole frame at the frame width. On photo-heavy frames judge by the worst-cell grid, not only the global %: exported photos diff as evenly spread anti-aliasing noise while real layout errors concentrate in cells; raise figma-diff's 4th arg (gate %, default 5) there instead of chasing photo noise.
+- **Implied-behavior inventory.** Every interactive affordance the design shows but static data cannot express: carousels (arrows/dot cues/edge-clipped cards), accordion expanded states, tabs, dropdown menus, video players, form focus/validation states, marquees, animations the composition implies. Each is built FROZEN in its exactly-designed resting state; the inventory is the human's menu of what to wire up next. Never silently omit one.
 - Responsive: pass/fail per width + anything visually off.
 - Paths written, assets exported, and any substitutions flagged (placeholder copy replaced, undesigned states added).
 

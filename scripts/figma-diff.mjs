@@ -11,11 +11,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 
-const [refPath, renPath, outDir = "."] = process.argv.slice(2);
+const [refPath, renPath, outDir = ".", maxArg] = process.argv.slice(2);
 if (!refPath || !renPath) {
-  console.error("usage: node scripts/figma-diff.mjs <reference.png> <render.png> [outDir]");
+  console.error("usage: node scripts/figma-diff.mjs <reference.png> <render.png> [outDir] [maxPct]");
   process.exit(2);
 }
+// Gate threshold. Default 5%. Raise for photo-heavy frames where exported-
+// image anti-aliasing dominates the global % (judge those by the cell grid).
+const MAX_PCT = Number.parseFloat(maxArg ?? "5");
 
 const ref = PNG.sync.read(readFileSync(refPath));
 const ren = PNG.sync.read(readFileSync(renPath));
@@ -70,4 +73,4 @@ for (const c of cells.slice(0, 4)) {
   console.log(`  (${c.gx},${c.gy}) = ${c.pct.toFixed(1)}%`);
 }
 // Exit non-zero if clearly off, so it can gate an agent loop or CI.
-process.exit(pct > 5 ? 3 : 0);
+process.exit(pct > MAX_PCT ? 3 : 0);
