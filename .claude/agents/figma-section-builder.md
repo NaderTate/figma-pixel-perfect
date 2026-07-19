@@ -12,6 +12,8 @@ You build exactly ONE Figma section into ONE component file, pixel-perfect, and 
 - The dev server URL to verify against
 - Where tokens/globals/shared components already live: **use them, never redefine them**
 
+You run concurrently with sibling agents. Your file ownership makes conflicts impossible, so never wait for or check on siblings: fetch your node's data immediately and go straight through build + verify at full speed.
+
 ## Procedure
 
 1. **Read:** `get_metadata` (geometry source of truth) → `get_variable_defs` → `get_screenshot` (save your reference to `.figma/<section>/reference.png`) → `get_design_context` (hint only; its layer positions collapse under `display:contents` wrappers, trust metadata coords).

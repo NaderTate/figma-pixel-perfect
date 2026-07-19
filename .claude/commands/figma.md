@@ -26,6 +26,16 @@ Turn the Figma node at `$ARGUMENTS` into production code in THIS repo's stack, v
 - **Cross-section decorations belong to the shell.** Scan the metadata for elements whose geometry spans more than one section: continuous lines/pipes whose x positions repeat across sections, background blobs bleeding past a section boundary, connector threads. Build these ONCE in the page shell (absolutely positioned over the full page, layered per the design's z-order, an SVG path layer works well for pipe/line networks), and list them in each section builder's dispatch prompt so no builder rebuilds its local slice. Split across builders they come out as broken segments with seams at every boundary.
 - **Single section/component:** build it directly here.
 
+## 2b. Speed rules (parallelize everything that can be)
+
+Wall-clock time matters as much as fidelity. The design of the fan-out:
+
+1. **Dispatch ALL section builders in ONE message** so they run concurrently. Never dispatch one, wait, dispatch the next. If the harness caps concurrent subagents, the extras queue automatically; still dispatch everything at once.
+2. **Overlap the orchestrator's own work with the builders.** While builders run: export the full-frame reference PNG for the whole-frame gate, build the shell's cross-section decoration layer, and write the shell's spec entries. Do not sit idle waiting.
+3. **Sequential is only for real dependencies.** Isolation comes from file ownership (one section = one file), not from ordering. The only serial steps are tokens + shell scaffold before wave 1, and the whole-frame gate after all waves. Everything else is parallel by default.
+4. **Mobile is a second parallel wave.** When the design has a mobile frame, after the desktop wave lands dispatch one adapter per section simultaneously (same file ownership as wave 1), each building from the mobile frame at the mobile frame's own width and verifying at that width.
+5. **Assets export inside each builder**, not as a serial pre-pass.
+
 ## 3. Build rules (the ones that cost time when ignored)
 
 1. **Geometry from `get_metadata`, not `get_design_context`.** The Figma code wraps layers in `display:contents`, which collapses real offsets, so its positions are often wrong. Cross-check every position against metadata (its x/y are flat coords within the queried frame).
