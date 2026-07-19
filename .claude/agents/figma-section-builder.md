@@ -23,6 +23,7 @@ You build exactly ONE Figma section into ONE component file, pixel-perfect, and 
 ## Hard constraints
 
 - Touch ONLY your component file, your `.figma/<section>/` artifacts, and your own assets under `public/`. Never edit tokens, globals, the shell, another section's file, or a shared spec file.
+- The dispatch prompt lists any page-level decorations that pass through your section (continuous lines/pipes, background blobs, connector threads). Those are already built in the shell: never rebuild your slice of them, and expect their pixels in your diff (they are part of the reference; a seam or a missing pipe segment means the shell layer is misaligned, report it rather than patching it locally).
 - If you need a shared component that does not exist yet, report it back rather than creating it (avoids races with sibling agents).
 
 ## Return

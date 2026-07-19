@@ -23,6 +23,7 @@ Turn the Figma node at `$ARGUMENTS` into production code in THIS repo's stack, v
 ## 2. Triage - section or page?
 
 - **Full page** (node has several top-level section children): set up tokens + the page shell + globals FIRST (in this session, not in parallel), then dispatch **one `figma-section-builder` subagent per section, in parallel**. Each owns ONE component file and writes its own spec file. This is where speed scales: a page costs about the slowest section, not the sum.
+- **Cross-section decorations belong to the shell.** Scan the metadata for elements whose geometry spans more than one section: continuous lines/pipes whose x positions repeat across sections, background blobs bleeding past a section boundary, connector threads. Build these ONCE in the page shell (absolutely positioned over the full page, layered per the design's z-order, an SVG path layer works well for pipe/line networks), and list them in each section builder's dispatch prompt so no builder rebuilds its local slice. Split across builders they come out as broken segments with seams at every boundary.
 - **Single section/component:** build it directly here.
 
 ## 3. Build rules (the ones that cost time when ignored)
