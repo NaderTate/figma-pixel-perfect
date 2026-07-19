@@ -137,7 +137,9 @@ Pixel-perfect applies at each frame's own width. Designs usually ship one frame 
 - no accidental dead space
 - intentional reflow (stacking, wrapping) rather than shrinking text and images
 
-Verify by looking at real renders at several widths (for example 360 / 768 / 1024 / 1440 / 1920), not by trusting an overflow check alone. The kit's `responsive-audit.mjs` screenshots the full matrix for exactly this review.
+**The frame width is a verification width, never a CSS constant.** Build full-bleed section bands with a centered max-width content container inside each, and position elements within the container, not against a fixed page canvas. A page hard-sized to the frame's width looks broken at every other viewport (dead side space, left-anchored content) and is the single most common way an agent fails this section.
+
+Verify by looking at real renders at several widths (for example 360 / 768 / 1024 / 1440 / 1920), not by trusting an overflow check alone. The kit's `responsive-audit.mjs` screenshots the full matrix and hard-fails fixed-canvas builds (horizontal scroll, non-full-bleed sections, off-center content). Before calling the page done, have fresh eyes (reviewer agents or you) look at the rendered site at wide, narrow, and mid widths.
 
 ## 9. Definition of done
 
