@@ -145,6 +145,7 @@ Report all of this, honestly:
 
 - Spec suite result (N checks, 0 failed) if the kit is installed
 - Diff percentage per section at the frame's exact width (or the numeric-fallback wording from section 7)
+- For multi-section pages: the WHOLE frame verified as one unit (one full-page screenshot diffed against the full-frame reference), not just each section in isolation. The whole-frame pass is what catches seams, cross-section decorations, overlaps, and z-order mistakes that no per-section check and no written rule anticipated. The design's own pixels are the spec; verifying against all of them at once is what makes this method general instead of a growing list of special cases.
 - The key numbers you matched (container widths, columns, gaps, type sizes)
 - Everything substituted or flagged: placeholder copy replaced, icon mappings chosen, states you added that the design did not define
 - Project checks passing

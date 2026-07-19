@@ -49,13 +49,14 @@ The spec catches what the eye misses (a 4px drift, a 500-vs-600 weight) and pins
 1. Serve the app. `node scripts/figma-shot.mjs <url> <frameWidth> .figma/<name>/render.png "<root-selector>"` (the selector crops the shot to the section, matching the reference).
 2. `node scripts/figma-diff.mjs .figma/<name>/reference.png .figma/<name>/render.png .figma/<name>` gives the mismatch % + a worst-cell grid + `diff.png`.
 3. LOOK at `diff.png` and the two images side by side, localize with the grid, fix from the data, iterate until **sub-perceptual (< ~3%)**. Tip: if a small shift fixes it, it is a position bug; if no shift helps, it is shape/scale, so export the asset.
-4. **OFF-FRAME RULE - the definition of done.** Pixel-perfect is required ONLY at each frame's own width (read `width` from `get_metadata` per frame, never hardcode it). At EVERY OTHER width the layout will and should differ; there the bar is "professional and robust," judged by an agent that LOOKS, not just a script: no horizontal scroll, no weird/empty white space, no overlap or clipping, intentional reflow. Run `node scripts/responsive-audit.mjs <url>` (320 to 3840), then open the screenshots in `.audit/` and review each; a `ui-reviewer`-style agent signs off if available. Build mobile from the mobile frame; never infer it.
-5. Run the repo's own checks (build, lint, typecheck) before calling it done.
+4. **WHOLE-FRAME GATE (the catch-all that makes this general).** After every section passes its own loop, verify the frame as ONE unit: export the full-frame reference at full resolution (`get_screenshot` with `maxDimension` larger than the frame's tallest edge), take a full-page shot at the frame width, diff them, and run all spec files together (`node scripts/figma-spec-check.mjs .figma/<name>/spec-*.json`). The section split, the shell, the subagents are internal machinery; the frame is the unit of truth. Any artifact no instruction anticipated (a decoration crossing sections, a seam between builders, a z-order mistake, an overlap) fails HERE and gets fixed by the loop instead of shipping. Nothing is done until the whole frame passes.
+5. **OFF-FRAME RULE - the definition of done.** Pixel-perfect is required ONLY at each frame's own width (read `width` from `get_metadata` per frame, never hardcode it). At EVERY OTHER width the layout will and should differ; there the bar is "professional and robust," judged by an agent that LOOKS, not just a script: no horizontal scroll, no weird/empty white space, no overlap or clipping, intentional reflow. Run `node scripts/responsive-audit.mjs <url>` (320 to 3840), then open the screenshots in `.audit/` and review each; a `ui-reviewer`-style agent signs off if available. Build mobile from the mobile frame; never infer it.
+6. Run the repo's own checks (build, lint, typecheck) before calling it done.
 
 ## 6. Report
 
 - Spec suite: N checks, 0 failed (or list what remains and why).
-- Final diff % per section at the frame width.
+- Final diff % per section AND for the whole frame at the frame width.
 - Responsive: pass/fail per width + anything visually off.
 - Paths written, assets exported, and any substitutions flagged (placeholder copy replaced, undesigned states added).
 
